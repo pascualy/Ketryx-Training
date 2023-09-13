@@ -1,0 +1,83 @@
+name: Vercel Deployment
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  SHOULD_DEPLOY: >-
+    ${{
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (
+        github.ref == 'refs/heads/main'||
+        github.ref == 'refs/heads/production'
+      )
+    }}
+on:
+  push:
+    branches:
+      - production
+      - '*'
+
+jobs:
+  test-unit-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Cache dependencies
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: ./node_modules
+          key: modules-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package.json', 'package-lock.json') }}
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Run unit and integration tests
+        run: npm run test:unit-integration-ci
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: success() || failure()
+        with:
+          name: test-results-unit-integration
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Report build to Ketryx
+        uses: Ketryx/ketryx-github-action@v1
+        if: fromJSON(env.SHOULD_DEPLOY) && (success() || failure())
+        with:
+          ketryx-url: ${{ secrets.KETRYX_URL }}
+          project: ${{ secrets.KETRYX_PROJECT }}
+          api-key: ${{ secrets.KETRYX_API_KEY }}
+          build-name: ci
+          test-junit-path: test-results/junit.xml
+
+  Deploy-Preview:
+    runs-on: ubuntu-latest
+    needs: [test-unit-integration]
+    if: github.ref != 'refs/heads/production'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+
+  Deploy-Production:
+    runs-on: ubuntu-latest
+    needs: [test-unit-integration]
+    if: github.ref == 'refs/heads/production'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
