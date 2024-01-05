@@ -4,7 +4,7 @@
 import { render, screen } from '@testing-library/react'
 import Home from '@/app/page'
 
-describe('Home @tests:SWA-1', () => {
+describe('Home @tests:KDG-3', () => {
   it('renders a better heading', () => {
     render(<Home />)
 
