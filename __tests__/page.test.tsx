@@ -5,7 +5,7 @@ import { render, screen } from '@testing-library/react'
 import Home from '@/app/page'
 
 describe('Home @tests:KDG-3', () => {
-  it('renders a better heading', () => {
+  it('renders the best heading', () => {
     render(<Home />)
 
     const heading = screen.getByRole('heading', {
