@@ -11,8 +11,8 @@
     "test:unit-integration-ci": "JEST_JUNIT_OUTPUT_DIR=test-results JEST_JUNIT_OUTPUT_NAME=junit.xml jest --watchAll=false --testResultsProcessor=\"jest-junit\""
   },
   "dependencies": {
-    "@cucumber/cucumber": "^10.0.0",
-    "@testing-library/jest-dom": "^6.1.3",
+    "@cucumber/cucumber": "^10.3.2",
+    "@testing-library/jest-dom": "^6.1.6",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.4.3",
     "@types/node": "20.6.0",
